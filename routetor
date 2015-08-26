@@ -1,0 +1,103 @@
+#!/usr/bin/env python
+""""A socket server for roting specific addresses through TOR"""
+
+"""Copyright 2015 Sean Whalen
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License."""
+
+import socket
+from os import remove, chown, chmod
+from subprocess import call
+from grp import getgrnam
+from stat import S_IRUSR, S_IWUSR, S_IWGRP
+
+sock_path = "/tmp/routetor"
+group = "cuckoo"
+gid = getgrnam(group)[2]  # Get the gid from the group name
+
+
+sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+dns_port = "5353"  # TOR's DNS port
+proxy_port = "9040"  # TOR's transparent proxy port
+result_port = "2042"  # Default port for Cuckoo's result server
+
+
+def rule_exists(rule, table=None):
+    """Checks if the given iptables rule already exists"""
+    cmdline = ["iptables"]
+    if table:
+        cmdline += ["-t", table]
+    cmdline += ["-C"] + rule
+    return call(cmdline, stdin=None, stdout=None, stderr=None) == 0
+
+
+def insert_rule(rule, table=None):
+    """"Inserts the given iptables rule with a higher priority than existing rules"""
+    if not rule_exists(rule, table=table):
+        cmdline = ["iptables"]
+        if table:
+            cmdline += ["-t", table]
+        cmdline += ["-I"] + rule
+        return call(cmdline)
+
+
+def delete_rule(rule, table=None):
+    """Deletes an existing iptibles rule"""
+    cmdline = ["iptables"]
+    if table:
+        cmdline += ["-t", table]
+    cmdline += ["-D"] + rule
+    return call(cmdline)
+
+# Remove any stale socket
+try:
+    remove("/tmp/routetor")
+except OSError, error:
+    pass
+
+# Create the socket
+sock.bind("/tmp/routetor")
+
+# Secure the socket so only root and cuckoo can use it
+chown(sock_path, -1, gid)
+chmod(sock_path, S_IRUSR | S_IWUSR | S_IWGRP)  # chmod 620
+
+sock.listen(5)
+while True:
+    # Wait for connections
+    conn, addr = sock.accept()
+    while True:
+        data = conn.recv(1024)
+        if not data:
+            break  # No more data from client
+        command, address = data.split(" ")
+        if command == "add":
+            # Prevent transparent proxy packet leaks
+            # https://lists.torproject.org/pipermail/tor-talk/2014-March/032507.html
+            insert_rule(["OUTPUT", "-m", "conntrack", "--ctstate", "INVALID", "-j", "DROP"])
+            insert_rule(["OUTPUT", "-m", "state", "--state", "INVALID", "-j", "DROP"])
+            # Add DNS route
+            insert_rule(["PREROUTING", "-s", address, "-p", "udp", "--dport", "53", "-j",
+                         "REDIRECT", "--to-ports", dns_port], table="nat")
+            # Add TCP route - Ignore Cuckoo result server port
+            insert_rule(["PREROUTING", "-s", address, "-p", "tcp", "--syn", "!", "--dport", result_port, "-j",
+                         "REDIRECT", "--to-ports", proxy_port], table="nat")
+        elif command == "delete":
+            # Delete DNS route
+            delete_rule(["PREROUTING", "-s", address, "-p", "udp", "--dport", "53", "-j",
+                         "REDIRECT", "--to-ports", dns_port], table="nat")
+            # Delete TCP route
+            delete_rule(["PREROUTING", "-s", address, "-p", "tcp", "--syn", "!", "--dport", result_port, "-j",
+                         "REDIRECT", "--to-ports", proxy_port], table="nat")
+
+    conn.close()
