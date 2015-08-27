@@ -15,6 +15,9 @@ Although TOR may keep your connection anonymous, the content and configuration o
 
 For more on what TOR is, and how it works, view [the overview](https://www.torproject.org/about/overview).
 
+
+## Installation
+
 To install TOR, follow the guide option 2, **not** option 1, [here](https://www.torproject.org/docs/debian.html.en) 
 
 Once TOR is installed, edit its config file
