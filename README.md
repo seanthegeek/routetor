@@ -3,7 +3,7 @@ Routes VM traffic through TOR for the Optiv fork of Cuckoo Sandbox
 
 ## Overview
 
-The Onion Router (TOR) is a great way to give your sandbox VM a pseudo-annonymous, like internet connection. If you'd like to use TOR with your sandbox, here are a few things to keep in mind:
+The Onion Router (TOR) is a great way to give your sandbox VM a pseudo-annonymous, live internet connection. If you'd like to use TOR with your sandbox, here are a few things to keep in mind:
 
 Most corporate, university, and other shared networks have policies prohibiting the use of TOR for security reasons. TOR may help keep what you are doing hidden, but it will be very obvious to most network administrators when you use TOR. Get permission if necessary.  
 
@@ -31,6 +31,8 @@ Add the following lines to the bottom:
     DNSListenAddress 192.168.56.1
     DNSPort 5353
 
+Note: `192.168.56.1` is the default address for the first VirtualBox host-only adaptor (`vboxnet0`). Adjust as nessessary for your virtualization setup to match Cuckoo's result server IP address.
+
 Then restart TOR:
 
     $ sudo service tor restart
@@ -41,7 +43,7 @@ Install the scripts that Cuckoo will use to enable and disable TOR routing per a
     $ cd routetor
     $ sudo cp *tor* /usr/sbin
 
-`routetor` uses a UNIX socket client/server model, so that `root` can take privileged actions on behalf of the `cuckoo` user which runs the client scripts.
+`routetor` uses a UNIX socket client/server model, so that `root` can take privileged actions on behalf of the `cuckoo` user, which runs the client scripts.
 
 Schedule the `routetor` server to run at system boot
 
