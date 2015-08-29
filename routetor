@@ -17,7 +17,7 @@
 
 import socket
 from os import remove, chown, chmod
-from subprocess import call
+from subprocess import call, PIPE
 from grp import getgrnam
 from stat import S_IRUSR, S_IWUSR, S_IWGRP
 
@@ -38,7 +38,7 @@ def rule_exists(rule, table=None):
     if table:
         cmdline += ["-t", table]
     cmdline += ["-C"] + rule
-    return call(cmdline, stdin=None, stdout=None, stderr=None) == 0
+    return call(cmdline, stdout=PIPE, stderr=PIPE) == 0
 
 
 def insert_rule(rule, table=None):
@@ -52,7 +52,7 @@ def insert_rule(rule, table=None):
 
 
 def delete_rule(rule, table=None):
-    """Deletes an existing iptibles rule"""
+    """Deletes an existing iptables rule"""
     cmdline = ["iptables"]
     if table:
         cmdline += ["-t", table]
