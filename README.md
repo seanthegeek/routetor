@@ -59,17 +59,17 @@ Start `routetor` for the first time:
 
 ## KVM Instructions
 
-If you are using KVM, modify the each of our KVM snapshots with:
+If you are using KVM, modify the each of the KVM snapshots with:
 
-virsh snapshot-edit <domain name> <snapshot name>
+    $ virsh snapshot-edit <domain name> <snapshot name>
 
 Where you see an interface entry for the network card, add the following line within it:
 
     <target dev='<name>'/>
     
-Where `name` is a a unique `venet` device name (e.g. `vnet0`, `vnet1`, `vnet2`).
+Where `name` is a a unique `vnet` device name (e.g. `vnet0`, `vnet1`, `vnet2`).
 
-Copy `utils/tcpdumpwrapper.py` in the cuckoo directory to `/usr/sbin` and then modify the `tcpdump` option in auxiliary.conf to point to `/usr/sbin/tcpdumpwrapper.py`.
+Copy `utils/tcpdumpwrapper.py` in the Cuckoo directory to `/usr/sbin` and then modify the `tcpdump` option in auxiliary.conf to point to `/usr/sbin/tcpdumpwrapper.py`.
 
 Add another option under the "sniffer" heading (after first checking to ensure /usr/sbin/tcpdump has the required suid or raised capability permissions:
 
