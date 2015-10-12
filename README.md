@@ -65,7 +65,7 @@ If you are using KVM, modify the each of the KVM snapshots with:
 
 Where you see an interface entry for the network card, add the following line within it:
 
-    <target dev='<name>'/>
+    <target dev='name'/>
     
 Where `name` is a a unique `vnet` device name (e.g. `vnet0`, `vnet1`, `vnet2`).
 
