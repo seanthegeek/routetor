@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 """"A socket server for roting specific addresses through TOR"""
 
+import logging
+import socket
+from os import path, remove, chown, chmod
+from subprocess import call
+from grp import getgrnam
+from stat import S_IRUSR, S_IWUSR, S_IWGRP
+import atexit
+
 """Copyright 2015 Sean Whalen
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,12 +23,20 @@
    See the License for the specific language governing permissions and
    limitations under the License."""
 
+<<<<<<< HEAD
+__version__ = "1.0.0"
+=======
 import socket
 from os import remove, chown, chmod
 from subprocess import call, PIPE
 from grp import getgrnam
 from stat import S_IRUSR, S_IWUSR, S_IWGRP
+>>>>>>> origin/master
 
+logging.basicConfig(filename='routetor.log', level=logging.INFO, format='%(asctime)s %(message)s')
+
+atexit.register(logging.info, "rotetor exiting")
+logging.info("routetor v{} started".format(__version__))
 sock_path = "/tmp/routetor"
 group = "cuckoo"
 gid = getgrnam(group)[2]  # Get the gid from the group name
@@ -60,23 +76,30 @@ def delete_rule(rule, table=None):
     return call(cmdline)
 
 # Remove any stale socket
+if path.exists(sock_path):
+    try:
+        logging.warning("Removing stale socket")
+        remove(sock_path)
+    except OSError, error:
+        logging.error("Failed to remove stale socket: {}".format(error))
+
 try:
-    remove("/tmp/routetor")
-except OSError, error:
-    pass
+    # Create the socket
+    sock.bind(sock_path)
 
-# Create the socket
-sock.bind("/tmp/routetor")
+    # Secure the socket so only root and cuckoo can use it
+    chown(sock_path, -1, gid)
+    chmod(sock_path, S_IRUSR | S_IWUSR | S_IWGRP)  # chmod 620
 
-# Secure the socket so only root and cuckoo can use it
-chown(sock_path, -1, gid)
-chmod(sock_path, S_IRUSR | S_IWUSR | S_IWGRP)  # chmod 620
-
-sock.listen(5)
+    sock.listen(5)
+except Exception as error:
+    logging.CRITICAL("Failed to listen on at {} {}".format(sock_path, error))
+    exit(1)
 while True:
     # Wait for connections
     conn, addr = sock.accept()
-    while True:
+while True:
+    try:
         data = conn.recv(1024)
         if not data:
             break  # No more data from client
@@ -100,4 +123,7 @@ while True:
             delete_rule(["PREROUTING", "-s", address, "-p", "tcp", "--syn", "!", "--dport", result_port, "-j",
                          "REDIRECT", "--to-ports", proxy_port], table="nat")
 
-    conn.close()
+            conn.close()
+
+    except Exception as error:
+        logging.error(error)

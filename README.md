@@ -56,21 +56,3 @@ Add the line:
 Start `routetor` for the first time:
 
     $ sudo /usr/sbin/routetor &
-
-## KVM Instructions
-
-If you are using KVM, modify the each of the KVM snapshots with:
-
-    $ virsh snapshot-edit <domain name> <snapshot name>
-
-Where you see an interface entry for the network card, add the following line within it:
-
-    <target dev='name'/>
-    
-Where `name` is a a unique `vnet` device name (e.g. `vnet0`, `vnet1`, `vnet2`).
-
-Copy `utils/tcpdumpwrapper.py` in the Cuckoo directory to `/usr/sbin` and then modify the `tcpdump` option in `conf/auxiliary.conf` to point to `/usr/sbin/tcpdumpwrapper.py`.
-
-Add another option under the `sniffer` heading (after first checking to ensure `/usr/sbin/tcpdump` has the required suid or raised capability permissions:
-
-    suid_check = False
