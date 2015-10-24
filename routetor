@@ -70,10 +70,10 @@ def delete_rule(rule, table=None):
 # Remove any stale socket
 if path.exists(sock_path):
     try:
-        logging.warning("Removing stale socket")
+        logging.warning("Removing stale socket at {}".format(sock_path))
         remove(sock_path)
     except OSError, error:
-        logging.error("Failed to remove stale socket: {}".format(error))
+        logging.error("Failed to remove stale socket at {}".format(error))
 
 try:
     # Create the socket
