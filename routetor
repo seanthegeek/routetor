@@ -3,8 +3,8 @@
 
 import logging
 import socket
-from os import path, remove, chown, chmod
-from subprocess import call
+from os import getuid, path, remove, chown, chmod
+from subprocess import call, PIPE
 from grp import getgrnam
 from stat import S_IRUSR, S_IWUSR, S_IWGRP
 import atexit
@@ -25,7 +25,11 @@ import atexit
 
 __version__ = "1.0.0"
 
-logging.basicConfig(filename='routetor.log', level=logging.INFO, format='%(asctime)s %(message)s')
+if getuid() != 0:
+    print("This script must be run as root")
+    exit(-1)
+
+logging.basicConfig(filename='/var/log/routetor.log', level=logging.INFO, format='%(asctime)s %(message)s')
 
 atexit.register(logging.info, "rotetor exiting")
 logging.info("routetor v{} started".format(__version__))
