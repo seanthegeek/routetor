@@ -23,15 +23,15 @@ import atexit
    See the License for the specific language governing permissions and
    limitations under the License."""
 
-<<<<<<< HEAD
+
 __version__ = "1.0.0"
-=======
+
 import socket
 from os import remove, chown, chmod
 from subprocess import call, PIPE
 from grp import getgrnam
 from stat import S_IRUSR, S_IWUSR, S_IWGRP
->>>>>>> origin/master
+
 
 logging.basicConfig(filename='routetor.log', level=logging.INFO, format='%(asctime)s %(message)s')
 
