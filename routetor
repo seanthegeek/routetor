@@ -85,7 +85,7 @@ try:
 
     sock.listen(5)
 except Exception as error:
-    logging.CRITICAL("Failed to listen on at {} {}".format(sock_path, error))
+    logging.CRITICAL("Failed to listen at {} {}".format(sock_path, error))
     exit(1)
 while True:
     # Wait for connections
