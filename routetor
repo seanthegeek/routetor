@@ -103,6 +103,7 @@ while True:
         if command == "add":
             # Prevent transparent proxy packet leaks
             # https://lists.torproject.org/pipermail/tor-talk/2014-March/032507.html
+            logging.info("Starting transparent proxy for {}".format(address))
             insert_rule(["OUTPUT", "-m", "conntrack", "--ctstate", "INVALID", "-j", "DROP"])
             insert_rule(["OUTPUT", "-m", "state", "--state", "INVALID", "-j", "DROP"])
             # Add DNS route
@@ -112,6 +113,7 @@ while True:
             insert_rule(["PREROUTING", "-s", address, "-p", "tcp", "--syn", "!", "--dport", result_port, "-j",
                          "REDIRECT", "--to-ports", proxy_port], table="nat")
         elif command == "delete":
+            logging.info("Stopping transparent proxy for {}".format(address))
             # Delete DNS route
             delete_rule(["PREROUTING", "-s", address, "-p", "udp", "--dport", "53", "-j",
                          "REDIRECT", "--to-ports", dns_port], table="nat")
