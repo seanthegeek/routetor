@@ -23,7 +23,7 @@ import atexit
    See the License for the specific language governing permissions and
    limitations under the License."""
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 if getuid() != 0:
     print("This script must be run as root")
@@ -121,7 +121,9 @@ while True:
                 delete_rule(["PREROUTING", "-s", address, "-p", "tcp", "--syn", "!", "--dport", result_port, "-j",
                              "REDIRECT", "--to-ports", proxy_port], table="nat")
 
-            conn.close()
-
         except Exception as error:
             logging.error(error)
+    try:
+        conn.close()
+    except Exception as error:
+        logging.error("Error closing connection: {}".format(error))
