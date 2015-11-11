@@ -119,7 +119,7 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="A socket server for routing specific source addresses through Tor")
-    parser.add_argument("-l", "--logpath", help="Log to a file at this path", default="/dev/null")
+    parser.add_argument("-l", "--logfile", help="Direct all log output to this file", default="/dev/null")
     parser.add_argument("-g", "--sockgroup", help="Change owner of Unix socket to this group", default="cuckoo")
     parser.add_argument("-d", "--dnsport", type=int, help="Tor DNS port", default=5353)
     parser.add_argument("-p", "--proxyport", type=int, help="Tor proxy port", default=9040)
@@ -133,12 +133,12 @@ if __name__ == "__main__":
         config = RawConfigParser()
         config.read(args.configfile)
 
-        for option in ["logpath", "sockgroup", "dnsport", "proxyport", "resultport", "interface"]:
+        for option in ["logfile", "sockgroup", "dnsport", "proxyport", "resultport", "interface"]:
             if config.has_option("routetor", option):
                 args.__setattr__(option, config.get("routetor", option)
 
     # Initialize logging engine
-    logging.basicConfig(filename=args.logpath, level=logging.INFO, format="%(asctime)s routetor: %(message)s")
+    logging.basicConfig(filename=args.logfile, level=logging.INFO, format="%(asctime)s routetor: %(message)s")
     atexit.register(logging.info, "exiting")
     logging.info("v{0} starting".format(__version__))
 
