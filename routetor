@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""""A socket server for roting specific addresses through TOR"""
+"""A socket server for routing specific source addresses through Tor"""
 
 import logging
 import socket
@@ -7,9 +7,13 @@ from os import getuid, path, remove, chown, chmod
 from subprocess import call, PIPE
 from grp import getgrnam
 from stat import S_IRUSR, S_IWUSR, S_IWGRP
+from ConfigParser import RawConfigParser
 import atexit
+import argparse
 
-"""Copyright 2015 Sean Whalen
+"""
+Copyright 2015 Sean Whalen
+Copyright 2015 Jacob Gajek
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -21,27 +25,12 @@ import atexit
    distributed under the License is distributed on an "AS IS" BASIS,
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
-   limitations under the License."""
+   limitations under the License.
+"""
 
-__version__ = "1.0.1"
+__version__ = "2.0.0"
 
-if getuid() != 0:
-    print("This script must be run as root")
-    exit(-1)
-
-logging.basicConfig(filename='/var/log/routetor.log', level=logging.INFO, format='%(asctime)s %(message)s')
-
-atexit.register(logging.info, "rotetor exiting")
-logging.info("routetor v{} started".format(__version__))
-sock_path = "/tmp/routetor"
-group = "cuckoo"
-gid = getgrnam(group)[2]  # Get the gid from the group name
-
-
-sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-dns_port = "5353"  # TOR's DNS port
-proxy_port = "9040"  # TOR's transparent proxy port
-result_port = "2042"  # Default port for Cuckoo's result server
+SOCKPATH = "/tmp/routetor"
 
 
 def rule_exists(rule, table=None):
@@ -54,7 +43,7 @@ def rule_exists(rule, table=None):
 
 
 def insert_rule(rule, table=None):
-    """"Inserts the given iptables rule with a higher priority than existing rules"""
+    """Inserts the given iptables rule with a higher priority than existing rules"""
     if not rule_exists(rule, table=table):
         cmdline = ["iptables"]
         if table:
@@ -71,59 +60,123 @@ def delete_rule(rule, table=None):
     cmdline += ["-D"] + rule
     return call(cmdline)
 
-# Remove any stale socket
-if path.exists(sock_path):
+
+def start_proxy(args, address):
+    """Starts transparent proxy for a specific source IP address"""
+    logging.info("starting transparent proxy for {0}".format(address))
+    
+    # Prevent packet leaks (https://lists.torproject.org/pipermail/tor-talk/2014-March/03507.html)
+    insert_rule(["OUTPUT", "-m", "conntrack", "--ctstate", "INVALID", "-j", "DROP"])
+    insert_rule(["OUTPUT", "-m", "state", "--state", "INVALID", "-j", "DROP"])
+
+    # Add DNS route
+    rule = ["PREROUTING", "-s", address, "-p", "udp", "--dport", "53",
+            "-j", "REDIRECT", "--to-ports", args.dnsport]
+    
+    if args.interface:
+        rule += ["-i", args.interface]
+
+    insert_rule(rule, table="nat")
+
+    # Add TCP route -- ignore Cuckoo result server port
+    rule = ["PREROUTING", "-s", address, "-p", "tcp", "--syn", "!", "--dport", args.resultport,
+            "-j", "REDIRECT", "--to-ports", args.proxyport]
+
+    if args.interface:
+        rule += ["-i", args.interface]
+
+    insert_rule(rule, table="nat")
+
+
+def stop_proxy(args, address):
+    """Stops transparent proxy for a specific source IP address"""
+    logging.info("stopping transparent proxy for {0}".format(address))
+
+    # Delete DNS route
+    rule = ["PREROUTING", "-s", address, "-p", "udp", "--dport", "53",
+            "-j", "REDIRECT", "--to-ports", args.dnsport]
+
+    if args.interface:
+        rule += ["-i", args.interface]
+
+    delete_rule(rule, table="nat")
+
+    # Delete TCP route
+    rule = ["PREROUTING", "-s", address, "-p", "tcp", "--syn", "!", "--dport", args.resultport,
+            "-j", "REDIRECT", "--to-ports", args.proxyport]
+
+    if args.interface:
+        rule += ["-i", args.interface]
+
+    delete_rule(rule, table="nat")
+
+
+if __name__ == "__main__":
+
+    if getuid() != 0:
+        print("This script must be run as root")
+        exit(1)
+
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="A socket server for routing specific source addresses through Tor")
+    parser.add_argument("-l", "--logpath", help="Log to a file at this path", default="/dev/null")
+    parser.add_argument("-g", "--sockgroup", help="Change owner of Unix socket to this group", default="cuckoo")
+    parser.add_argument("-d", "--dnsport", type=int, help="Tor DNS port", default=5353)
+    parser.add_argument("-p", "--proxyport", type=int, help="Tor proxy port", default=9040)
+    parser.add_argument("-r", "--resultport", type=int, help="Cuckoo result server port", default=2042)
+    parser.add_argument("-i", "--interface", help="Source interface for Tor routed traffic")
+    parser.add_argument("-c", "--configfile", help="Read options from this configuration file")
+    args = parser.parse_args()
+
+    # Parse configuration file if specified
+    if args.configfile and path.exists(args.configfile):
+        config = RawConfigParser()
+        config.read(args.configfile)
+
+        for option in ["logpath", "sockgroup", "dnsport", "proxyport", "resultport", "interface"]:
+            if config.has_option("routetor", option):
+                args.__setattr__(option, config.get("routetor", option)
+
+    # Initialize logging engine
+    logging.basicConfig(filename=args.logpath, level=logging.INFO, format="%(asctime)s routetor: %(message)s")
+    atexit.register(logging.info, "exiting")
+    logging.info("v{0} starting".format(__version__))
+
+    # Create Unix socket
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+
+    if path.exists(SOCKPATH):
+        try:
+            remove(SOCKPATH)
+            logging.warning("removing stale socket at {0}".format(SOCKPATH))
+        except OSError as error:
+            logging.error("failed to remove stale socket at {0} ({1})".format(SOCKPATH, error))
+
     try:
-        logging.warning("Removing stale socket at {}".format(sock_path))
-        remove(sock_path)
-    except OSError, error:
-        logging.error("Failed to remove stale socket at {}".format(error))
+        sock.bind(SOCKPATH)
+        chown(SOCKPATH, 0, getgrnam(args.sockgroup).gr_gid)
+        chmod(SOCKPATH, S_IRUSR | S_IWUSR | S_IWGRP)
+    except Exception as error:
+        logging.CRITICAL("failed to listen at {0} ({1})".format(SOCKPATH, error))
+        exit(1)
 
-try:
-    # Create the socket
-    sock.bind(sock_path)
-
-    # Secure the socket so only root and cuckoo can use it
-    chown(sock_path, -1, gid)
-    chmod(sock_path, S_IRUSR | S_IWUSR | S_IWGRP)  # chmod 620
-
-    sock.listen(5)
-except Exception as error:
-    logging.CRITICAL("Failed to listen at {} {}".format(sock_path, error))
-    exit(1)
-while True:
-    # Wait for connections
-    conn, addr = sock.accept()
+    # Main command loop
     while True:
         try:
-            data = conn.recv(1024)
-            if not data:
-                break  # No more data from client
-            command, address = data.split(" ")
-            if command == "add":
-                # Prevent transparent proxy packet leaks
-                # https://lists.torproject.org/pipermail/tor-talk/2014-March/032507.html
-                logging.info("Starting transparent proxy for {}".format(address))
-                insert_rule(["OUTPUT", "-m", "conntrack", "--ctstate", "INVALID", "-j", "DROP"])
-                insert_rule(["OUTPUT", "-m", "state", "--state", "INVALID", "-j", "DROP"])
-                # Add DNS route
-                insert_rule(["PREROUTING", "-s", address, "-p", "udp", "--dport", "53", "-j",
-                             "REDIRECT", "--to-ports", dns_port], table="nat")
-                # Add TCP route - Ignore Cuckoo result server port
-                insert_rule(["PREROUTING", "-s", address, "-p", "tcp", "--syn", "!", "--dport", result_port, "-j",
-                             "REDIRECT", "--to-ports", proxy_port], table="nat")
-            elif command == "delete":
-                logging.info("Stopping transparent proxy for {}".format(address))
-                # Delete DNS route
-                delete_rule(["PREROUTING", "-s", address, "-p", "udp", "--dport", "53", "-j",
-                             "REDIRECT", "--to-ports", dns_port], table="nat")
-                # Delete TCP route
-                delete_rule(["PREROUTING", "-s", address, "-p", "tcp", "--syn", "!", "--dport", result_port, "-j",
-                             "REDIRECT", "--to-ports", proxy_port], table="nat")
+            datagram = sock.recv(1024)
+
+            if datagram.split()[0] == "start":
+                address = datagram.split()[1]
+                start_proxy(args, address)
+                continue
+
+            if datagram.split()[0] == "stop":
+                address = datagram.split()[1]
+                stop_proxy(args, address)
+                continue
+
+            logging.warning("unrecognized command ({0})".format(datagram))
 
         except Exception as error:
             logging.error(error)
-    try:
-        conn.close()
-    except Exception as error:
-        logging.error("Error closing connection: {}".format(error))
+
