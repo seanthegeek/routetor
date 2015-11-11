@@ -135,7 +135,7 @@ if __name__ == "__main__":
 
         for option in ["logfile", "sockgroup", "dnsport", "proxyport", "resultport", "interface"]:
             if config.has_option("routetor", option):
-                args.__setattr__(option, config.get("routetor", option)
+                args.__setattr__(option, config.get("routetor", option))
 
     # Initialize logging engine
     logging.basicConfig(filename=args.logfile, level=logging.INFO, format="%(asctime)s routetor: %(message)s")
