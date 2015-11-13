@@ -1,11 +1,9 @@
 # routetor
 A socket server for routing specific source addresses through Tor
 
-It was originally written for use with the [Optiv fork of Cuckoo Sandbox](https://github.com/seanthegeek/routetor/edit/master/README.md)
-
 ## Overview
 
-Tor is a great way to give your sandbox VM a pseudo-anonymous, live internet connection. If you'd like to use Tor with your sandbox, here are a few things to keep in mind:
+`routetor` was originally written for use with the [Optiv fork of Cuckoo Sandbox](https://github.com/seanthegeek/routetor/edit/master/README.md). Tor is a great way to give your sandbox VM a pseudo-anonymous, live internet connection. If you'd like to use Tor with your sandbox, here are a few things to keep in mind:
 
 Most corporate, university, and other shared networks have policies prohibiting the use of Tor for security reasons. Tor can help keep what you are doing hidden, but it will be very obvious to most network administrators when you use Tor. Get permission if necessary.  
 
@@ -16,7 +14,6 @@ It is possible for a server operator (i.e. malware operator) to recognize that a
 Although Tor may keep your connection anonymous, the content and configuration of your VM may reveal your identity.
 
 For more on what Tor is, and how it works, view [the overview](https://www.torproject.org/about/overview).
-
 
 ## Installation
 
