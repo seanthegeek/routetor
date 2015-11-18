@@ -71,7 +71,7 @@ def start_proxy(args, address):
 
     # Add DNS route
     rule = ["PREROUTING", "-s", address, "-p", "udp", "--dport", "53",
-            "-j", "REDIRECT", "--to-ports", args.dnsport]
+            "-j", "REDIRECT", "--to-ports", str(args.dnsport)]
     
     if args.interface:
         rule += ["-i", args.interface]
@@ -79,8 +79,8 @@ def start_proxy(args, address):
     insert_rule(rule, table="nat")
 
     # Add TCP route -- ignore Cuckoo result server port
-    rule = ["PREROUTING", "-s", address, "-p", "tcp", "--syn", "!", "--dport", args.resultport,
-            "-j", "REDIRECT", "--to-ports", args.proxyport]
+    rule = ["PREROUTING", "-s", address, "-p", "tcp", "--syn", "!", "--dport", str(args.resultport),
+            "-j", "REDIRECT", "--to-ports", str(args.proxyport)]
 
     if args.interface:
         rule += ["-i", args.interface]
@@ -94,7 +94,7 @@ def stop_proxy(args, address):
 
     # Delete DNS route
     rule = ["PREROUTING", "-s", address, "-p", "udp", "--dport", "53",
-            "-j", "REDIRECT", "--to-ports", args.dnsport]
+            "-j", "REDIRECT", "--to-ports", str(args.dnsport)]
 
     if args.interface:
         rule += ["-i", args.interface]
@@ -102,8 +102,8 @@ def stop_proxy(args, address):
     delete_rule(rule, table="nat")
 
     # Delete TCP route
-    rule = ["PREROUTING", "-s", address, "-p", "tcp", "--syn", "!", "--dport", args.resultport,
-            "-j", "REDIRECT", "--to-ports", args.proxyport]
+    rule = ["PREROUTING", "-s", address, "-p", "tcp", "--syn", "!", "--dport", str(args.resultport),
+            "-j", "REDIRECT", "--to-ports", str(args.proxyport)]
 
     if args.interface:
         rule += ["-i", args.interface]
