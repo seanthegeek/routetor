@@ -11,7 +11,7 @@ A socket server for routing specific source addresses through Tor
 
 - It is possible for a server operator (i.e. malware operator) to recognize that a client is using Tor by checking the IP address against the public list of exit nodes, which may warn attackers that a sample is being analyzed. The Optiv fork of Cuckoo provides a per-analysis toggle for Tor. Use it wisely.
  
-Although Tor may keep your connection anonymous, the content and configuration of your VM may reveal your identity.
+- Although Tor may keep your connection anonymous, the content and configuration of your VM may reveal your identity.
 
 For more on what Tor is, and how it works, view [the overview](https://www.torproject.org/about/overview).
 
