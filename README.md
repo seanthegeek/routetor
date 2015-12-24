@@ -7,7 +7,7 @@ A socket server for routing specific source addresses through Tor
 
 - Most corporate, university, and other shared networks have policies prohibiting the use of Tor for security reasons. Tor can help keep what you are doing hidden, but it will be very obvious to most network administrators when you use Tor. Get permission if necessary.  
 
-- Only DNS and TCP traffic can be routed through Tor, the rest will be blocked if configured properly. As a result, malware might not behave the same way over Tor as it would over a normal internet connection. However, most malware makes use of TCP.
+- Only DNS and TCP traffic can be routed through Tor; the rest will be blocked if configured properly. As a result, malware might not behave the same way over Tor as it would over a normal internet connection. However, most malware makes use of TCP.
 
 - It is possible for a server operator (i.e. malware operator) to recognize that a client is using Tor by checking the IP address against the public list of exit nodes, which may warn attackers that a sample is being analyzed. The Optiv fork of Cuckoo provides a per-analysis toggle for Tor. Use it wisely.
  
