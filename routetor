@@ -28,14 +28,15 @@ Copyright 2015 Jacob Gajek
    limitations under the License.
 """
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 
+IPTABLES_PATH = "/sbin/iptables" 
 SOCKPATH = "/tmp/routetor"
 
 
 def rule_exists(rule, table=None):
     """Checks if the given iptables rule already exists"""
-    cmdline = ["iptables"]
+    cmdline = [IPTABLES_PATH]
     if table:
         cmdline += ["-t", table]
     cmdline += ["-C"] + rule
@@ -45,7 +46,7 @@ def rule_exists(rule, table=None):
 def insert_rule(rule, table=None):
     """Inserts the given iptables rule with a higher priority than existing rules"""
     if not rule_exists(rule, table=table):
-        cmdline = ["iptables"]
+        cmdline = [IPTABLES_PATH]
         if table:
             cmdline += ["-t", table]
         cmdline += ["-I"] + rule
@@ -54,7 +55,7 @@ def insert_rule(rule, table=None):
 
 def delete_rule(rule, table=None):
     """Deletes an existing iptables rule"""
-    cmdline = ["iptables"]
+    cmdline = [IPTABLES_PATH]
     if table:
         cmdline += ["-t", table]
     cmdline += ["-D"] + rule
